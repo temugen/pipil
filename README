@@ -1,0 +1,9 @@
+Use pipil to create, open, modify, and save images in many common formats (jpg, png, bmp) from your Python code.
+
+The pipil module replaces the need for the Python Imaging Library (PIL), and uses the same functions you know and love.
+PIL will be used by default, if it is available, but it is not required. In the event that PIL is unable to be used, pipil will revert to using a bundled Java utility for image processing.
+
+The following functionalities of PIL have been implemented in pipil:
+class Image:
+    new, open, save, show, getpixel, putpixel
+
