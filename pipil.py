@@ -34,7 +34,7 @@ def _pil_open(filename):
 
 def _nopil_open(filename):
   # Run a java utility to print out the pixels of the image to stdout
-  command = ['java', 'edu.illinois.info103.ImagePiper', 'read', filename]
+  command = ['java', '-jar', 'ImagePiper.jar', 'read', filename]
   image_piper = subprocess.Popen(command, stdout=subprocess.PIPE)
 
   # Read the output from ImagePiper
@@ -56,7 +56,7 @@ def _pil_save(image, filename):
 
 def _nopil_save(image, filename):
   # Run a java utility to read in the pixels of the image and save them to a file
-  command = ['java', 'edu.illinois.info103.ImagePiper', 'write', filename]
+  command = ['java', '-jar', 'ImagePiper.jar', 'write', filename]
   image_piper = subprocess.Popen(command, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
 
   # Read the encoding from ImagePiper and create a codec for it
