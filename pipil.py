@@ -225,7 +225,8 @@ class Image:
     _saver(self, filename)
 
   @staticmethod
-  def new(size, color = (0, 0, 0)):
+  def new(mode, size, color = (0, 0, 0)):
+    #ignore mode for now
     return Image(size, color)
 
   def copy(self):
