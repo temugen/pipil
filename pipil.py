@@ -277,3 +277,16 @@ class ImageViewer():
     '''
     self.root.mainloop()
 
+  def __ne__(self, other):
+    w1, h1 = self.size
+    w2, h2 = other.size
+    if w1 != w2 or h1 != h2:
+      return True
+    for i in range(len(self.data)):
+      if self.data[i] != other.data[i]:
+        return True
+    return False
+
+  def __eq__(self, other):
+    return not (self != other)
+
