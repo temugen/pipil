@@ -147,6 +147,10 @@ class Color:
     rgb_int = (rgb_int << 8) + b
     return rgb_int
 
+  def squared_euclidean_distance(self, other):
+    return sum((self.color[i] - other.color[i])**2 for i in range(len(self.color)))
+
+
 class Image:
   def __init__(self, *args):
     if type(args[0]) is type("string"):
@@ -168,8 +172,8 @@ class Image:
     self.data, self.size = _opener(filename)
 
   def _create(self, size, color = (0, 0, 0)):
+    size = tuple(int(x) for x in size)
     w, h = self.size = size
-    w, h = int(w), int(h)
     self.data = [color] * w * h
 
   def _copy(self, image):
@@ -178,8 +182,8 @@ class Image:
 
   def _get_index(self, loc):
     # Convert an (x, y) pair to a 1-dimensional index
+    loc = tuple(int(x) for x in loc)
     x, y = loc
-    x, y = int(x), int(y)
     w, h = self.size
     return y * w + x
 
@@ -187,6 +191,7 @@ class Image:
     return self.data[self._get_index(loc)]
 
   def putpixel(self, loc, color):
+    color = tuple(min(x, 255) for x in color)
     self.data[self._get_index(loc)] = color
 
   def temp_file(self):
@@ -247,7 +252,6 @@ class Image:
   def __eq__(self, other):
     return not (self != other)
 
-
 class ImageViewer():
   def __init__(self, image, block=False):
     self.Tkphoto = ImageViewer._image_to_Tkphoto(image)
@@ -290,4 +294,25 @@ class ImageViewer():
         break
     '''
     self.root.mainloop()
+
+class ImageUtils:
+  @staticmethod
+  def diff(image1, image2):
+    w1, h1 = image1.size
+    w2, h2 = image2.size
+    w, h = max(w1, w2), max(h1, h2)
+    image = Image((w, h))
+    for x in range(w):
+      for y in range(h):
+        if x >= w1 or x >= w2 or y >= h1 or y >= h2:
+          image.putpixel((x, y), (255, 255, 255))
+        else:
+          color1 = Color(image1.getpixel((x, y)))
+          color2 = Color(image2.getpixel((x, y)))
+          dist = color1.squared_euclidean_distance(color2)
+          if dist > 0:
+            color = tuple(dist for i in range(3))
+            image.putpixel((x, y), color)
+    return image
+
   
