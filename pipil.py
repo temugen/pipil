@@ -169,6 +169,7 @@ class Image:
 
   def _create(self, size, color = (0, 0, 0)):
     w, h = self.size = size
+    w, h = int(w), int(h)
     self.data = [color] * w * h
 
   def _copy(self, image):
@@ -178,6 +179,7 @@ class Image:
   def _get_index(self, loc):
     # Convert an (x, y) pair to a 1-dimensional index
     x, y = loc
+    x, y = int(x), int(y)
     w, h = self.size
     return y * w + x
 
