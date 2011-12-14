@@ -87,7 +87,7 @@ def _nopil_save(image, filename):
   image_piper.stdin.write("%s %s\n" % (codec.encode(w, radix), codec.encode(h, radix)))
   # Write the pixels line by line
   pixels = map(lambda pixel: codec.encode(Color.rgb_to_int(pixel), radix), image.data)
-  lines = [" ".join(pixels[image._get_index((0, line)):image._get_index((w, line))]) for line in range(h)]
+  lines = (" ".join(pixels[image._get_index((0, line)):image._get_index((w, line))]) for line in range(h))
   image_piper.stdin.write("\n".join(lines))
   # Flush the writes
   image_piper.communicate()
@@ -266,7 +266,7 @@ class ImageViewer():
   def _image_to_Tkphoto(image):
     w, h = image.size
     pixels = map(lambda pixel: "#%02x%02x%02x" % pixel, image.data)
-    lines = ["{" + " ".join(pixels[image._get_index((0, line)):image._get_index((w, line))]) + "}" for line in range(h)]
+    lines = ("{" + " ".join(pixels[image._get_index((0, line)):image._get_index((w, line))]) + "}" for line in range(h))
     fill = " ".join(lines)
     return (fill, (w, h))
 
