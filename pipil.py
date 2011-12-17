@@ -87,9 +87,11 @@ def _nopil_open_socket(filename):
   # Run a java utility to send the pixels of the image over our socket
   command = ['java', '-jar', 'ImagePiper.jar', 'send', filename]
   subprocess.Popen(command)
-  # Wait for the java utility to connect
-  conn, addr = s.accept()
 
+  # Wait for the java utility to connect and move sockets
+  conn, addr = s.accept()
+  s.close()
+  
   # Read the width and the height
   size = conn.recv(8)
   size = [_bytes_to_int(size[i*4:i*4+4]) for i in xrange(2)]
@@ -99,10 +101,9 @@ def _nopil_open_socket(filename):
   lines = [conn.recv(4 * w) for line in xrange(h)]
   data = [_bytes_to_rgb(lines[line][i*4:i*4+4]) for line in xrange(h) for i in xrange(w)]
 
-  # Close the connection and the socket
+  # Close the connection
   conn.close()
-  s.close()
-
+  
   return (data, (w, h))
 
 def _pil_save(image, filename):
