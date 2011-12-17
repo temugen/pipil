@@ -21,6 +21,9 @@
 # Set to False to test alternative image processor
 use_PIL = True
 
+# The port to use with IPC for opening/saving image files
+nopil_port = 4859
+
 import string
 from multiprocessing import Process
 import imp
@@ -29,6 +32,7 @@ import tempfile
 import subprocess
 from time import sleep
 import atexit
+import socket
 
 # Remove our temporary files when the module is unloaded
 temp_files = []
@@ -52,7 +56,7 @@ def _pil_open(filename):
   data = [tuple(color[len(color) - 3:]) for color in data]
   return (data, image.size)
 
-def _nopil_open(filename):
+def _nopil_open_pipe(filename):
   # Run a java utility to print out the pixels of the image to stdout
   command = ['java', '-jar', 'ImagePiper.jar', 'read', filename]
   image_piper = subprocess.Popen(command, stdout=subprocess.PIPE)
@@ -66,6 +70,39 @@ def _nopil_open(filename):
   w, h = tuple(int(x, radix) for x in lines.pop(0).split())
   # Read the pixels line by line, with each line corresponding to a line from the image
   data = [Color.int_to_rgb(int(pixel, radix)) for line in lines for pixel in line.split()]
+  return (data, (w, h))
+
+def _bytes_to_int(bs):
+  return sum(ord(bs[i]) << (8 * (len(bs) - i - 1)) for i in xrange(len(bs)))
+
+def _bytes_to_rgb(bs):
+  return tuple(ord(bs[i]) for i in xrange(1, 4))
+
+def _nopil_open_socket(filename):
+  # Listen on a local IPv4-style socket to receive image data
+  s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  s.bind(('localhost', nopil_port))
+  s.listen(1)
+
+  # Run a java utility to send the pixels of the image over our socket
+  command = ['java', '-jar', 'ImagePiper.jar', 'send', filename]
+  subprocess.Popen(command)
+  # Wait for the java utility to connect
+  conn, addr = s.accept()
+
+  # Read the width and the height
+  size = conn.recv(8)
+  size = [_bytes_to_int(size[i*4:i*4+4]) for i in xrange(2)]
+  w, h = size
+
+  # Read entire lines in from the socket
+  lines = [conn.recv(4 * w) for line in xrange(h)]
+  data = [_bytes_to_rgb(lines[line][i*4:i*4+4]) for line in xrange(h) for i in xrange(w)]
+
+  # Close the connection and the socket
+  conn.close()
+  s.close()
+
   return (data, (w, h))
 
 def _pil_save(image, filename):
@@ -87,7 +124,7 @@ def _nopil_save(image, filename):
   image_piper.stdin.write("%s %s\n" % (codec.encode(w, radix), codec.encode(h, radix)))
   # Write the pixels line by line
   pixels = map(lambda pixel: codec.encode(Color.rgb_to_int(pixel), radix), image.data)
-  lines = (" ".join(pixels[image._get_index((0, line)):image._get_index((w, line))]) for line in range(h))
+  lines = (" ".join(pixels[image._get_index((0, line)):image._get_index((w, line))]) for line in xrange(h))
   image_piper.stdin.write("\n".join(lines))
   # Flush the writes
   image_piper.communicate()
@@ -97,6 +134,8 @@ try:
   _has_PIL = True
 except:
   _has_PIL = False
+
+_nopil_open = _nopil_open_socket
 
 class IntegerCodec:
   def __init__(self):
@@ -148,7 +187,7 @@ class Color:
     return rgb_int
 
   def squared_euclidean_distance(self, other):
-    return sum((self.color[i] - other.color[i])**2 for i in range(len(self.color)))
+    return sum((self.color[i] - other.color[i])**2 for i in xrange(len(self.color)))
 
 
 class Image:
@@ -244,7 +283,7 @@ class Image:
     w2, h2 = other.size
     if w1 != w2 or h1 != h2:
       return True
-    for i in range(len(self.data)):
+    for i in xrange(len(self.data)):
       if self.data[i] != other.data[i]:
         return True
     return False
@@ -266,7 +305,7 @@ class ImageViewer():
   def _image_to_Tkphoto(image):
     w, h = image.size
     pixels = map(lambda pixel: "#%02x%02x%02x" % pixel, image.data)
-    lines = ("{" + " ".join(pixels[image._get_index((0, line)):image._get_index((w, line))]) + "}" for line in range(h))
+    lines = ("{" + " ".join(pixels[image._get_index((0, line)):image._get_index((w, line))]) + "}" for line in xrange(h))
     fill = " ".join(lines)
     return (fill, (w, h))
 
@@ -302,8 +341,8 @@ class ImageUtils:
     w2, h2 = image2.size
     w, h = max(w1, w2), max(h1, h2)
     image = Image((w, h))
-    for x in range(w):
-      for y in range(h):
+    for x in xrange(w):
+      for y in xrange(h):
         if x >= w1 or x >= w2 or y >= h1 or y >= h2:
           image.putpixel((x, y), (255, 255, 255))
         else:
@@ -311,7 +350,7 @@ class ImageUtils:
           color2 = Color(image2.getpixel((x, y)))
           dist = color1.squared_euclidean_distance(color2)
           if dist > 0:
-            color = tuple(dist for i in range(3))
+            color = tuple(dist for i in xrange(3))
             image.putpixel((x, y), color)
     return image
 
